@@ -1,6 +1,7 @@
 import { useState } from 'react'
 
 const STORAGE_KEY = 'neocontrole_estabelecimentos_nomes'
+const AUTH_STATE_KEY = 'neocontrole_auth_state'
 const AUTH_API_URL = import.meta.env.VITE_AUTH_API_URL || 'http://127.0.0.1:8001'
 
 function aplicarNomesPersonalizados(lista) {
@@ -17,16 +18,37 @@ function aplicarNomesPersonalizados(lista) {
   }
 }
 
+function carregarEstadoInicial() {
+  try {
+    const raw = localStorage.getItem(AUTH_STATE_KEY)
+    if (!raw) return { step: 'login', token: '', usuarioNome: '', estabelecimentos: [] }
+    const parsed = JSON.parse(raw)
+    if (!parsed || !parsed.token || !Array.isArray(parsed.estabelecimentos) || parsed.estabelecimentos.length === 0) {
+      return { step: 'login', token: '', usuarioNome: '', estabelecimentos: [] }
+    }
+    return {
+      step: 'select',
+      token: parsed.token || '',
+      usuarioNome: parsed.usuarioNome || '',
+      estabelecimentos: parsed.estabelecimentos || [],
+    }
+  } catch {
+    return { step: 'login', token: '', usuarioNome: '', estabelecimentos: [] }
+  }
+}
+
 function App() {
-  const [step, setStep] = useState('login') // 'login' | 'select'
+  const inicial = carregarEstadoInicial()
+
+  const [step, setStep] = useState(inicial.step) // 'login' | 'select'
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [loginLoading, setLoginLoading] = useState(false)
   const [loginError, setLoginError] = useState('')
 
-  const [usuarioNome, setUsuarioNome] = useState('')
-  const [token, setToken] = useState('')
-  const [estabelecimentos, setEstabelecimentos] = useState([])
+  const [usuarioNome, setUsuarioNome] = useState(inicial.usuarioNome)
+  const [token, setToken] = useState(inicial.token)
+  const [estabelecimentos, setEstabelecimentos] = useState(inicial.estabelecimentos)
   const [renameTarget, setRenameTarget] = useState(null)
   const [renameValue, setRenameValue] = useState('')
 
@@ -59,9 +81,21 @@ function App() {
 
       const comNomes = aplicarNomesPersonalizados(lista)
 
-      setToken(data.access_token || '')
-      setUsuarioNome(data.usuario || username)
+      const novoToken = data.access_token || ''
+      const novoUsuarioNome = data.usuario || username
+
+      setToken(novoToken)
+      setUsuarioNome(novoUsuarioNome)
       setEstabelecimentos(comNomes)
+      // Persistir estado de auth para quando voltar do PDV ou recarregar
+      try {
+        localStorage.setItem(
+          AUTH_STATE_KEY,
+          JSON.stringify({ token: novoToken, usuarioNome: novoUsuarioNome, estabelecimentos: comNomes }),
+        )
+      } catch {
+        // ignore
+      }
       setStep('select')
     } catch (err) {
       setLoginError(err.message || 'Falha ao autenticar')
@@ -98,6 +132,23 @@ function App() {
     // Persistir apenas id e nome
     const paraSalvar = atualizados.map((e) => ({ id: e.id, nome: e.nome }))
     localStorage.setItem(STORAGE_KEY, JSON.stringify(paraSalvar))
+
+    // Atualizar também o estado de auth persistido com os novos nomes
+    try {
+      const raw = localStorage.getItem(AUTH_STATE_KEY)
+      const parsed = raw ? JSON.parse(raw) : null
+      if (parsed) {
+        localStorage.setItem(
+          AUTH_STATE_KEY,
+          JSON.stringify({
+            ...parsed,
+            estabelecimentos: atualizados,
+          }),
+        )
+      }
+    } catch {
+      // ignore
+    }
 
     setRenameTarget(null)
   }
