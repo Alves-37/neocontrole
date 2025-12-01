@@ -1,5 +1,7 @@
 import { useState } from 'react'
 
+const AUTH_API_URL = import.meta.env.VITE_AUTH_API_URL || 'http://127.0.0.1:8001'
+
 const ESTABELECIMENTOS_PADRAO = [
   {
     id: 'neopdv1',
@@ -25,26 +27,17 @@ const ESTABELECIMENTOS_PADRAO = [
     descricao: 'Quarto estabelecimento',
     url: 'https://neopdv4.vercel.app/',
   },
+  {
+    id: 'neopdv5',
+    nome: 'NeoPDV 5',
+    descricao: 'Quinto estabelecimento',
+    url: 'https://neopdv5.vercel.app/',
+  },
   // Adicione mais estabelecimentos aqui
 ]
 
-const STORAGE_KEY = 'neocontrole_estabelecimentos_nomes'
-
 function carregarEstabelecimentos() {
-  try {
-    const salvos = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
-    if (!Array.isArray(salvos) || salvos.length === 0) return ESTABELECIMENTOS_PADRAO
-
-    // Mesclar padrão com nomes salvos por id
-    return ESTABELECIMENTOS_PADRAO.map((padrao) => {
-      const custom = salvos.find((e) => e.id === padrao.id)
-      return custom && custom.nome
-        ? { ...padrao, nome: custom.nome }
-        : padrao
-    })
-  } catch {
-    return ESTABELECIMENTOS_PADRAO
-  }
+  return [...ESTABELECIMENTOS_PADRAO].sort((a, b) => (a.nome || '').localeCompare(b.nome || '', 'pt', { sensitivity: 'base' }))
 }
 
 function App() {
@@ -64,7 +57,7 @@ function App() {
     setRenameValue(atual.nome)
   }
 
-  const handleConfirmRename = () => {
+  const handleConfirmRename = async () => {
     if (!renameTarget) return
     const novoNome = renameValue.trim()
     if (!novoNome) {
@@ -72,14 +65,25 @@ function App() {
       return
     }
 
+    // Tentar persistir no backend central (auth)
+    try {
+      await fetch(`${AUTH_API_URL}/estabelecimentos/${encodeURIComponent(renameTarget.id)}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ nome: novoNome }),
+      })
+    } catch (err) {
+      alert((err && err.message) || 'Falha ao atualizar nome do estabelecimento no servidor')
+      return
+    }
+
     const atualizados = estabelecimentos.map((e) =>
       e.id === renameTarget.id ? { ...e, nome: novoNome } : e,
     )
-    setEstabelecimentos(atualizados)
-
-    // Persistir apenas id e nome
-    const paraSalvar = atualizados.map((e) => ({ id: e.id, nome: e.nome }))
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(paraSalvar))
+    const ordenados = [...atualizados].sort((a, b) => (a.nome || '').localeCompare(b.nome || '', 'pt', { sensitivity: 'base' }))
+    setEstabelecimentos(ordenados)
 
     setRenameTarget(null)
   }
