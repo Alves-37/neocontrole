@@ -57,7 +57,7 @@ function App() {
   const [userSenhaEdit, setUserSenhaEdit] = useState('')
   const [isSavingUser, setIsSavingUser] = useState(false)
   const [userSaveError, setUserSaveError] = useState('')
-  const [isInitializing, setIsInitializing] = useState(true)
+  const [isNavigating, setIsNavigating] = useState(false)
 
   // Restaurar sessão a partir do localStorage (caso o utilizador volte de um PDV)
   useEffect(() => {
@@ -76,8 +76,6 @@ function App() {
       }
     } catch {
       // ignorar erros de leitura do storage
-    } finally {
-      setIsInitializing(false)
     }
   }, [])
 
@@ -106,22 +104,9 @@ function App() {
     }
   }, [token, usuario, username])
 
-  if (isInitializing) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900 px-4">
-        <div className="flex flex-col items-center gap-4 text-center">
-          <div className="h-12 w-12 border-4 border-blue-200 border-t-blue-500 rounded-full animate-spin" />
-          <div>
-            <p className="text-sm font-medium text-white">A preparar os estabelecimentos…</p>
-            <p className="text-xs text-blue-100 mt-1">Por favor aguarde um instante.</p>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   const handleSelect = (url, nomeEstab) => {
     if (!url) return
+    setIsNavigating(true)
     try {
       const target = new URL(url, window.location.origin)
       if (nomeEstab) {
@@ -486,15 +471,23 @@ function App() {
               </div>
             </div>
 
-            <div className="space-y-3">
+            <div className="relative space-y-3">
+              {isNavigating && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60">
+                  <div className="flex flex-col items-center gap-2 text-gray-700 text-xs">
+                    <div className="h-6 w-6 border-2 border-blue-300 border-t-blue-600 rounded-full animate-spin" />
+                    <span>A abrir o estabelecimento…</span>
+                  </div>
+                </div>
+              )}
               {estabelecimentos.map((estab) => (
                 <div
                   key={estab.id}
                   role="button"
                   tabIndex={0}
-                  onClick={() => handleSelect(estab.url, estab.nome)}
+                  onClick={() => !isNavigating && handleSelect(estab.url, estab.nome)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
+                    if (!isNavigating && (e.key === 'Enter' || e.key === ' ')) {
                       e.preventDefault()
                       handleSelect(estab.url, estab.nome)
                     }
