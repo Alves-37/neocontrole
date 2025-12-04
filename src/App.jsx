@@ -103,9 +103,18 @@ function App() {
     }
   }, [token, usuario, username])
 
-  const handleSelect = (url) => {
+  const handleSelect = (url, nomeEstab) => {
     if (!url) return
-    window.location.href = url
+    try {
+      const target = new URL(url, window.location.origin)
+      if (nomeEstab) {
+        target.searchParams.set('launcher_estab_nome', nomeEstab)
+      }
+      window.location.href = target.toString()
+    } catch {
+      // fallback simples caso a URL não seja válida
+      window.location.href = url
+    }
   }
 
   const handleRename = (id) => {
@@ -466,11 +475,11 @@ function App() {
                   key={estab.id}
                   role="button"
                   tabIndex={0}
-                  onClick={() => handleSelect(estab.url)}
+                  onClick={() => handleSelect(estab.url, estab.nome)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault()
-                      handleSelect(estab.url)
+                      handleSelect(estab.url, estab.nome)
                     }
                   }}
                   className="w-full flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3 text-left transition hover:border-blue-500/70 hover:bg-blue-50 hover:shadow-lg hover:shadow-blue-500/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white cursor-pointer"
