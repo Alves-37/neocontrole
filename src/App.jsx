@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 const AUTH_API_URL = import.meta.env.VITE_AUTH_API_URL || 'https://backendcontrole-production.up.railway.app'
 
@@ -58,6 +58,51 @@ function App() {
   const [isSavingUser, setIsSavingUser] = useState(false)
   const [userSaveError, setUserSaveError] = useState('')
 
+  // Restaurar sessão a partir do localStorage (caso o utilizador volte de um PDV)
+  useEffect(() => {
+    try {
+      const storedToken = localStorage.getItem('neocontrole_token')
+      const storedUser = localStorage.getItem('neocontrole_usuario')
+      const storedUsername = localStorage.getItem('neocontrole_username')
+      if (storedToken) {
+        setToken(storedToken)
+      }
+      if (storedUser) {
+        setUsuario(storedUser)
+      }
+      if (storedUsername) {
+        setUsername(storedUsername)
+      }
+    } catch {
+      // ignorar erros de leitura do storage
+    }
+  }, [])
+
+  // Sincronizar token/usuario com localStorage
+  useEffect(() => {
+    try {
+      if (token) {
+        localStorage.setItem('neocontrole_token', token)
+      } else {
+        localStorage.removeItem('neocontrole_token')
+      }
+
+      if (usuario) {
+        localStorage.setItem('neocontrole_usuario', usuario)
+      } else {
+        localStorage.removeItem('neocontrole_usuario')
+      }
+
+      if (username) {
+        localStorage.setItem('neocontrole_username', username)
+      } else {
+        localStorage.removeItem('neocontrole_username')
+      }
+    } catch {
+      // ignorar erros de escrita no storage
+    }
+  }, [token, usuario, username])
+
   const handleSelect = (url) => {
     if (!url) return
     window.location.href = url
@@ -110,6 +155,13 @@ function App() {
     setUsuario(null)
     setUsername('')
     setPassword('')
+    try {
+      localStorage.removeItem('neocontrole_token')
+      localStorage.removeItem('neocontrole_usuario')
+      localStorage.removeItem('neocontrole_username')
+    } catch {
+      // ignore storage errors
+    }
     setEstabelecimentos(carregarEstabelecimentos())
   }
 
