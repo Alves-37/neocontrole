@@ -57,6 +57,7 @@ function App() {
   const [userSenhaEdit, setUserSenhaEdit] = useState('')
   const [isSavingUser, setIsSavingUser] = useState(false)
   const [userSaveError, setUserSaveError] = useState('')
+  const [isInitializing, setIsInitializing] = useState(true)
 
   // Restaurar sessão a partir do localStorage (caso o utilizador volte de um PDV)
   useEffect(() => {
@@ -75,6 +76,8 @@ function App() {
       }
     } catch {
       // ignorar erros de leitura do storage
+    } finally {
+      setIsInitializing(false)
     }
   }, [])
 
@@ -102,6 +105,20 @@ function App() {
       // ignorar erros de escrita no storage
     }
   }, [token, usuario, username])
+
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900 px-4">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <div className="h-12 w-12 border-4 border-blue-200 border-t-blue-500 rounded-full animate-spin" />
+          <div>
+            <p className="text-sm font-medium text-white">A preparar os estabelecimentos…</p>
+            <p className="text-xs text-blue-100 mt-1">Por favor aguarde um instante.</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   const handleSelect = (url, nomeEstab) => {
     if (!url) return
