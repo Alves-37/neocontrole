@@ -7,31 +7,31 @@ const ESTABELECIMENTOS_PADRAO = [
     id: 'neopdv1',
     nome: 'NeoPDV 1',
     descricao: 'Primeiro estabelecimento',
-    url: 'https://neopdv1.vercel.app/',
+    url_front: 'https://neopdv1.vercel.app/',
   },
   {
     id: 'neopdv2',
     nome: 'NeoPDV 2',
     descricao: 'Segundo estabelecimento',
-    url: 'https://neopdv2.vercel.app/',
+    url_front: 'https://neopdv2.vercel.app/',
   },
   {
     id: 'neopdv3',
     nome: 'NeoPDV 3',
     descricao: 'Terceiro estabelecimento',
-    url: 'https://neopdv3.vercel.app/',
+    url_front: 'https://neopdv3.vercel.app/',
   },
   {
     id: 'neopdv4',
     nome: 'NeoPDV 4',
     descricao: 'Quarto estabelecimento',
-    url: 'https://neopdv4.vercel.app/',
+    url_front: 'https://neopdv4.vercel.app/',
   },
   {
     id: 'neopdv5',
     nome: 'NeoPDV 5',
     descricao: 'Quinto estabelecimento',
-    url: 'https://neopdv5.vercel.app/',
+    url_front: 'https://neopdv5.vercel.app/',
   },
 ]
 
@@ -129,18 +129,18 @@ function App() {
     carregarEstabelecimentosDoBanco();
   }, [token]); // Executa quando o token mudar
 
-  const handleSelect = (url, nomeEstab) => {
-    if (!url) return
+  const handleSelect = (url_front, nomeEstab) => {
+    if (!url_front) return
     setIsNavigating(true)
     try {
-      const target = new URL(url, window.location.origin)
+      const target = new URL(url_front, window.location.origin)
       if (nomeEstab) {
         target.searchParams.set('launcher_estab_nome', nomeEstab)
       }
       window.location.href = target.toString()
     } catch {
       // fallback simples caso a URL não seja válida
-      window.location.href = url
+      window.location.href = url_front
     }
   }
 
@@ -507,11 +507,11 @@ function App() {
                   key={estab.id}
                   role="button"
                   tabIndex={0}
-                  onClick={() => !isNavigating && handleSelect(estab.url, estab.nome)}
+                  onClick={() => !isNavigating && handleSelect(estab.url_front, estab.nome)}
                   onKeyDown={(e) => {
                     if (!isNavigating && (e.key === 'Enter' || e.key === ' ')) {
                       e.preventDefault()
-                      handleSelect(estab.url, estab.nome)
+                      handleSelect(estab.url_front, estab.nome)
                     }
                   }}
                   className="w-full flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3 text-left transition hover:border-blue-500/70 hover:bg-blue-50 hover:shadow-lg hover:shadow-blue-500/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white cursor-pointer"
