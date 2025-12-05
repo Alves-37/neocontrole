@@ -104,6 +104,31 @@ function App() {
     }
   }, [token, usuario, username])
 
+  // Carregar estabelecimentos do banco de dados quando o usuário estiver autenticado
+  useEffect(() => {
+    const carregarEstabelecimentosDoBanco = async () => {
+      if (!token) return;
+      
+      try {
+        const response = await fetch(`${AUTH_API_URL}/estabelecimentos`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          // Atualiza a lista de estabelecimentos com os dados do banco
+          setEstabelecimentos(data);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar estabelecimentos:', error);
+      }
+    };
+
+    carregarEstabelecimentosDoBanco();
+  }, [token]); // Executa quando o token mudar
+
   const handleSelect = (url, nomeEstab) => {
     if (!url) return
     setIsNavigating(true)
@@ -136,25 +161,35 @@ function App() {
 
     // Tentar persistir no backend central (auth)
     try {
-      await fetch(`${AUTH_API_URL}/estabelecimentos/${encodeURIComponent(renameTarget.id)}`, {
+      const response = await fetch(`${AUTH_API_URL}/estabelecimentos/${encodeURIComponent(renameTarget.id)}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ nome: novoNome }),
       })
+
+      if (!response.ok) {
+        throw new Error('Falha ao atualizar nome do estabelecimento')
+      }
+
+      // Recarrega os estabelecimentos do banco de dados após a atualização
+      const reloadResponse = await fetch(`${AUTH_API_URL}/estabelecimentos`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (reloadResponse.ok) {
+        const data = await reloadResponse.json();
+        setEstabelecimentos(data);
+      }
+
+      setRenameTarget(null)
     } catch (err) {
       alert((err && err.message) || 'Falha ao atualizar nome do estabelecimento no servidor')
-      return
     }
-
-    const atualizados = estabelecimentos.map((e) =>
-      e.id === renameTarget.id ? { ...e, nome: novoNome } : e,
-    )
-    const ordenados = [...atualizados].sort((a, b) => (a.nome || '').localeCompare(b.nome || '', 'pt', { sensitivity: 'base' }))
-    setEstabelecimentos(ordenados)
-
-    setRenameTarget(null)
   }
 
   const handleCancelRename = () => {
@@ -173,6 +208,7 @@ function App() {
     } catch {
       // ignore storage errors
     }
+    // Carrega os estabelecimentos padrão quando o usuário faz logout
     setEstabelecimentos(carregarEstabelecimentos())
   }
 
@@ -287,21 +323,7 @@ function App() {
 
       setToken(data.access_token)
       setUsuario(data.usuario)
-
-      const doBackend = data.estabelecimentos || []
-      const mesclados = carregarEstabelecimentos().map((padrao) => {
-        const encontrado = doBackend.find((e) => e.id === padrao.id)
-        if (!encontrado) {
-          return padrao
-        }
-        return {
-          ...padrao,
-          nome: encontrado.nome || padrao.nome,
-        }
-      })
-
-      const ordenados = [...mesclados].sort((a, b) => (a.nome || '').localeCompare(b.nome || '', 'pt', { sensitivity: 'base' }))
-      setEstabelecimentos(ordenados)
+      // O useEffect acima irá cuidar de carregar os estabelecimentos
 
       setPassword('')
     } catch (err) {
