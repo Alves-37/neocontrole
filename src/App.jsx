@@ -303,7 +303,12 @@ function App() {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: new URLSearchParams({ username: user, password: pass }),
+        body: new URLSearchParams({
+          grant_type: 'password',
+          username: user,
+          password: pass,
+          scope: '',
+        }),
       })
 
       if (!response.ok) {
