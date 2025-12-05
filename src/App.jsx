@@ -301,9 +301,9 @@ function App() {
       const response = await fetch(`${AUTH_API_URL}/auth/login`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: JSON.stringify({ username: user, password: pass }),
+        body: new URLSearchParams({ username: user, password: pass }),
       })
 
       if (!response.ok) {
@@ -322,7 +322,8 @@ function App() {
       const data = await response.json()
 
       setToken(data.access_token)
-      setUsuario(data.usuario)
+      // backend retorna { access_token, token_type }, então usamos o username digitado como exibido
+      setUsuario(user)
       // O useEffect acima irá cuidar de carregar os estabelecimentos
 
       setPassword('')
