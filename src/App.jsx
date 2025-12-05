@@ -298,28 +298,47 @@ function App() {
     setLoginError('')
 
     try {
-      const response = await fetch(`${AUTH_API_URL}/auth/login`, {
+      // Primeiro, tentar o formato JSON (backendcontrole)
+      let response = await fetch(`${AUTH_API_URL}/auth/login`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Type': 'application/json',
         },
-        body: new URLSearchParams({
-          grant_type: 'password',
-          username: user,
-          password: pass,
-          scope: '',
-        }),
+        body: JSON.stringify({ username: user, password: pass }),
       })
 
+      // Se o backend rejeitar com 415/422, tentar fallback OAuth2 form (nelson4)
+      if (!response.ok && (response.status === 415 || response.status === 422)) {
+        response = await fetch(`${AUTH_API_URL}/auth/login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: new URLSearchParams({
+            grant_type: 'password',
+            username: user,
+            password: pass,
+            scope: '',
+          }),
+        })
+      }
+
       if (!response.ok) {
-        let message = 'Falha ao iniciar sessão.'
+        let message = `Falha ao iniciar sessão (HTTP ${response.status}).`
         try {
-          const data = await response.json()
-          if (data?.detail) {
-            message = data.detail
+          const ct = response.headers.get('content-type') || ''
+          if (ct.includes('application/json')) {
+            const data = await response.json()
+            if (data?.detail) {
+              if (typeof data.detail === 'string') message += ` ${data.detail}`
+              else message += ` ${JSON.stringify(data.detail)}`
+            }
+          } else {
+            const text = await response.text()
+            if (text) message += ` ${text}`
           }
         } catch (e) {
-          // ignore JSON parse errors
+          // ignore parse errors
         }
         throw new Error(message)
       }
@@ -327,9 +346,13 @@ function App() {
       const data = await response.json()
 
       setToken(data.access_token)
-      // backend retorna { access_token, token_type }, então usamos o username digitado como exibido
-      setUsuario(user)
-      // O useEffect acima irá cuidar de carregar os estabelecimentos
+      // Preferir nome de usuário retornado pelo backend, se disponível
+      setUsuario(data.usuario || user)
+      // Se o backend já retornar estabelecimentos, usar imediatamente
+      if (Array.isArray(data.estabelecimentos)) {
+        setEstabelecimentos(data.estabelecimentos)
+      }
+      // O useEffect acima irá cuidar de carregar os estabelecimentos, quando aplicável
 
       setPassword('')
     } catch (err) {
